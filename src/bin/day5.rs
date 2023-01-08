@@ -1,16 +1,7 @@
-#[derive(Clone)]
+#[derive(Clone, Default)]
 struct Stack {
     crates: Vec<char>,
 }
-
-impl Default for Stack {
-    fn default() -> Self {
-        Self {
-            crates: Default::default(),
-        }
-    }
-}
-
 struct Ship {
     stacks: Vec<Stack>,
 }

@@ -6,7 +6,7 @@ struct Assignment {
 
 impl From<&str> for Assignment {
     fn from(value: &str) -> Self {
-        let mut parsed = value.split("-").map(|s| s.parse::<u32>().unwrap());
+        let mut parsed = value.split('-').map(|s| s.parse::<u32>().unwrap());
         let left = parsed.next().unwrap();
         let right = parsed.next().unwrap();
         Assignment {
@@ -21,8 +21,8 @@ impl Assignment {
         self.section_start <= other.section_start && self.section_end >= other.section_end
     }
     fn overlaps(&self, other: &Assignment) -> bool {
-        self.contains(&other)
-            || other.contains(&self)
+        self.contains(other)
+            || other.contains(self)
             || (self.section_start <= other.section_start
                 && self.section_end >= other.section_start)
             || (self.section_start <= other.section_end && self.section_end >= other.section_end)
@@ -50,14 +50,14 @@ fn main() {
 fn part2(test_input: &str) -> u32 {
     test_input
         .lines()
-        .map(|line| line.split(","))
+        .map(|line| line.split(','))
         .map(|mut pieces| {
             let first_elf = pieces.next().unwrap();
             let second_elf = pieces.next().unwrap();
             (Assignment::from(first_elf), Assignment::from(second_elf))
         })
         .filter(|(first_elf_assignment, second_elf_assignment)| {
-            first_elf_assignment.overlaps(&second_elf_assignment)
+            first_elf_assignment.overlaps(second_elf_assignment)
         })
         .map(|_| 1)
         .sum::<u32>()
@@ -66,15 +66,15 @@ fn part2(test_input: &str) -> u32 {
 fn part1(test_input: &str) -> u32 {
     test_input
         .lines()
-        .map(|line| line.split(","))
+        .map(|line| line.split(','))
         .map(|mut pieces| {
             let first_elf = pieces.next().unwrap();
             let second_elf = pieces.next().unwrap();
             (Assignment::from(first_elf), Assignment::from(second_elf))
         })
         .filter(|(first_elf_assignment, second_elf_assignment)| {
-            return first_elf_assignment.contains(&second_elf_assignment)
-                || second_elf_assignment.contains(&first_elf_assignment);
+            first_elf_assignment.contains(second_elf_assignment)
+                || second_elf_assignment.contains(first_elf_assignment)
         })
         .map(|_| 1)
         .sum::<u32>()

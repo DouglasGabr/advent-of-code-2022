@@ -56,10 +56,7 @@ impl Map {
     fn get_number_of_sand_at_rest(&self) -> u32 {
         self.tiles
             .iter()
-            .filter(|tile| match tile.1 {
-                Tile::Sand => true,
-                _ => false,
-            })
+            .filter(|tile| matches!(tile.1, Tile::Sand))
             .count() as u32
     }
 

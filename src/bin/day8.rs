@@ -112,5 +112,5 @@ fn part1(input: &str) -> u32 {
         }
     }
 
-    return visible_trees.try_into().unwrap();
+    visible_trees.try_into().unwrap()
 }

@@ -109,9 +109,8 @@ fn run<const ROPE_SIZE: usize>(input: &str) -> i32 {
         })
         .for_each(|movement| rope.apply_movement(movement));
 
-    return rope
-        .tail_visited_coordinates
+    rope.tail_visited_coordinates
         .len()
         .try_into()
-        .expect("visited coordinates should have a length that can be converted to an i32");
+        .expect("visited coordinates should have a length that can be converted to an i32")
 }

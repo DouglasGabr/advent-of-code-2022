@@ -17,8 +17,7 @@ fn main() {
                 }
             }
             let intersection = first_rucksack.intersection(&second_rucksack);
-            let content_sum = intersection.sum::<u32>();
-            content_sum
+            intersection.sum::<u32>()
         })
         .sum::<u32>();
     println!("part 1: {:?}", sum);
@@ -42,12 +41,10 @@ fn main() {
                     };
                 }
             }
-            let intersection = first_badges
-                .intersection(&second_badges)
-                .map(|weight| *weight);
+            let intersection = first_badges.intersection(&second_badges).copied();
             HashSet::<u32>::from_iter(intersection)
                 .intersection(&third_badges)
-                .map(|weight| *weight)
+                .copied()
                 .next()
                 .unwrap_or(0)
         })
@@ -56,6 +53,5 @@ fn main() {
 }
 
 fn parse_char_weight(char: char) -> u32 {
-    let parsed_weight = char.to_digit(36).unwrap() - 9 + (if char.is_uppercase() { 26 } else { 0 });
-    parsed_weight
+    char.to_digit(36).unwrap() - 9 + (if char.is_uppercase() { 26 } else { 0 })
 }

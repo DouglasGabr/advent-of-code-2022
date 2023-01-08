@@ -16,7 +16,7 @@ fn main() {
     strategy_map.insert("C Z", 3 + 3);
 
     let total = input
-        .split("\n")
+        .lines()
         .flat_map(|round| strategy_map.get(round))
         .sum::<u32>();
 
@@ -36,7 +36,7 @@ fn main() {
     correct_strategy_map.insert("C Z", 1 + 6);
 
     let total = input
-        .split("\n")
+        .lines()
         .flat_map(|round| correct_strategy_map.get(round))
         .sum::<u32>();
 

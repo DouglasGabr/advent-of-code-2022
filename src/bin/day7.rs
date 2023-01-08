@@ -4,21 +4,11 @@ use std::{
     rc::Rc,
 };
 
-#[derive(Debug)]
+#[derive(Debug, Default)]
 struct Directory<'a> {
     total_size: u32,
     directories: HashMap<&'a str, Rc<RefCell<Directory<'a>>>>,
     files: HashMap<&'a str, u32>,
-}
-
-impl Default for Directory<'_> {
-    fn default() -> Self {
-        Directory {
-            total_size: 0,
-            directories: HashMap::default(),
-            files: HashMap::default(),
-        }
-    }
 }
 
 #[derive(Debug)]

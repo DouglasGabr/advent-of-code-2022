@@ -111,7 +111,7 @@ struct Operation {
     rhs: OperationItem,
 }
 
-fn apply_operation_on_item(item: &mut Item, operation: Operation) -> () {
+fn apply_operation_on_item(item: &mut Item, operation: Operation) {
     let lhs = match operation.lhs {
         OperationItem::ItemLevel => item.0,
         OperationItem::Literal(literal) => literal,
@@ -143,7 +143,7 @@ struct Monkey {
 }
 
 impl Monkey {
-    fn inspect_items<F: FnMut(&mut Item) -> ()>(
+    fn inspect_items<F: FnMut(&mut Item)>(
         &mut self,
         mut after_inspection: F,
     ) -> Vec<InspectionResult> {

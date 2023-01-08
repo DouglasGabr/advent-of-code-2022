@@ -41,7 +41,7 @@ fn part2(input: &str) -> u32 {
         .product()
 }
 
-#[derive(Debug, Eq, Ord, Clone)]
+#[derive(Debug, Eq, Clone)]
 enum Packet {
     Number(u32),
     List(Vec<Packet>),
@@ -55,6 +55,12 @@ impl PartialEq for Packet {
             (Self::Number(a), Self::List(b)) => &vec![Self::Number(*a)] == b,
             (Self::List(a), Self::Number(b)) => a == &vec![Self::Number(*b)],
         }
+    }
+}
+
+impl Ord for Packet {
+    fn cmp(&self, other: &Self) -> std::cmp::Ordering {
+        self.partial_cmp(other).unwrap()
     }
 }
 
@@ -107,11 +113,11 @@ impl PacketLexer {
                 '[' => tokens.push(Token::OpenBracket),
                 ']' => tokens.push(Token::CloseBracket),
                 ',' => tokens.push(Token::Comma),
-                c if c.is_digit(10) => {
+                c if c.is_ascii_digit() => {
                     let mut number = String::new();
                     number.push(c);
                     while let Some(c) = chars.peek() {
-                        if c.is_digit(10) {
+                        if c.is_ascii_digit() {
                             number.push(*c);
                             chars.next();
                         } else {

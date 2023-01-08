@@ -41,5 +41,5 @@ fn process_input<const NUM_OF_DISTINCT_CHARS: usize>(input: &str) -> usize {
         }
         return index + 1;
     }
-    return 0;
+    0
 }

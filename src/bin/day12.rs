@@ -155,7 +155,7 @@ fn parse_input(input: &str) -> Grid {
             .map(|line| {
                 line.chars()
                     .map(|c| match c {
-                        'S' => Cell(b'a' - b'a', Some(CellType::Start)),
+                        'S' => Cell(0, Some(CellType::Start)),
                         'E' => Cell(b'z' - b'a', Some(CellType::End)),
                         other => Cell(other as u8 - b'a', None),
                     })

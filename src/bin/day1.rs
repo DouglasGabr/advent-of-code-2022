@@ -4,8 +4,8 @@ fn main() {
         .split("\n\n")
         .map(|lines| {
             lines
-                .split("\n")
-                .flat_map(|str_num| str_num.parse::<u32>())
+                .lines()
+                .filter_map(|str_num| str_num.parse::<u32>().ok())
                 .sum::<u32>()
         })
         .collect::<Vec<u32>>();
