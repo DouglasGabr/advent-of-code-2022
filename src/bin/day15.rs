@@ -1,9 +1,14 @@
-use std::collections::{HashMap, HashSet};
+use std::{
+    collections::{HashMap, HashSet},
+    ops::RangeBounds,
+};
+
+use ranges::Ranges;
 
 fn main() {
     let input = include_str!("../input/day15/prod.txt");
-    println!("Part 1: {}", part1(input, 2000000));
-    // println!("Part 2: {}", part2());
+    println!("Part 1: {}", part1(input, 2_000_000));
+    println!("Part 2: {}", part2(input, 4_000_000));
 }
 
 fn part1(input: &str, row_to_check: i32) -> u32 {
@@ -26,8 +31,34 @@ fn part1(input: &str, row_to_check: i32) -> u32 {
     scanned_positions.len() as u32
 }
 
-fn part2() -> u32 {
-    todo!()
+fn part2(input: &str, limit: i32) -> u64 {
+    let map = Map::from(input);
+    let mut ranges: Vec<Ranges<i32>> = (0..=limit).map(|_| Ranges::new()).collect();
+    map.sensor_area.iter().for_each(|(position, range)| {
+        ((position.1 - range).max(0)..=(position.1 + range).min(limit)).for_each(|y| {
+            let distance = (position.1 - y).abs();
+            let spread = range - distance;
+            ranges[y as usize]
+                .insert((position.0 - spread).max(0)..=(position.0 + spread).min(limit));
+        })
+    });
+    let distress_beacon_position = (0..=limit)
+        .find_map(|y| {
+            let range = ranges[y as usize].clone();
+            let diff = Ranges::from(0..=limit) - range;
+            if !diff.is_empty() {
+                let start_bound = diff.as_slice().first().unwrap().start_bound();
+                match start_bound {
+                    std::ops::Bound::Included(x) => Some((*x, y)),
+                    std::ops::Bound::Excluded(x) => Some((*x + 1, y)),
+                    _ => panic!("unexpected bound"),
+                }
+            } else {
+                None
+            }
+        })
+        .unwrap();
+    distress_beacon_position.0 as u64 * 4_000_000 + distress_beacon_position.1 as u64
 }
 
 #[derive(PartialEq, Debug)]
@@ -79,6 +110,12 @@ mod tests {
     fn test_part1() {
         let input = include_str!("../input/day15/test.txt");
         assert_eq!(part1(input, 10), 26);
+    }
+
+    #[test]
+    fn test_part2() {
+        let input = include_str!("../input/day15/test.txt");
+        assert_eq!(part2(input, 20), 56000011);
     }
 
     #[test]
