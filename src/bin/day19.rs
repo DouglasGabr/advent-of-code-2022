@@ -1,6 +1,6 @@
 use std::{
     fmt::Display,
-    ops::{Add, AddAssign},
+    ops::{Add, AddAssign, Sub, SubAssign},
 };
 
 use nom::{
@@ -36,7 +36,7 @@ impl Display for Robot {
     }
 }
 
-#[derive(Debug, PartialEq, Default, Copy, Clone)]
+#[derive(Debug, PartialEq, Default, Copy, Clone, PartialOrd)]
 struct Stock {
     ore: u32,
     clay: u32,
@@ -65,6 +65,41 @@ impl AddAssign for Stock {
             obsidian: self.obsidian + rhs.obsidian,
             geode: self.geode + rhs.geode,
         }
+    }
+}
+
+impl Add<&Robots> for Stock {
+    type Output = Stock;
+
+    fn add(self, rhs: &Robots) -> Self::Output {
+        Stock {
+            ore: self.ore + rhs.ore_collecting,
+            clay: self.clay + rhs.clay_collecting,
+            obsidian: self.obsidian + rhs.obsidian_collecting,
+            geode: self.geode + rhs.geode_cracking,
+        }
+    }
+}
+
+impl Sub for Stock {
+    type Output = Stock;
+
+    fn sub(self, rhs: Self) -> Self::Output {
+        Stock {
+            ore: self.ore - rhs.ore,
+            clay: self.clay - rhs.clay,
+            obsidian: self.obsidian - rhs.obsidian,
+            geode: self.geode - rhs.geode,
+        }
+    }
+}
+
+impl SubAssign for Stock {
+    fn sub_assign(&mut self, rhs: Self) {
+        self.ore -= rhs.ore;
+        self.clay -= rhs.clay;
+        self.obsidian -= rhs.obsidian;
+        self.geode -= rhs.geode;
     }
 }
 
@@ -100,43 +135,46 @@ impl Factory {
     }
 
     fn create_robot(&mut self, robots: &Robots) -> Option<Robot> {
-        if self.blueprint.can_create_geode_robot(&self.stock) {
-            self.stock.ore -= self.blueprint.geode_cracking_robot_cost.ore;
-            self.stock.obsidian -= self.blueprint.geode_cracking_robot_cost.obsidian;
-            println!(
-                "Spend {} ore and {} obsidian to start building a geode-cracking robot.",
-                self.blueprint.geode_cracking_robot_cost.ore,
-                self.blueprint.geode_cracking_robot_cost.obsidian
-            );
-            Some(Robot::GeodeCracking)
-        } else if self
-            .blueprint
-            .can_create_obsidian_robot(&self.stock, robots)
-        {
-            self.stock.ore -= self.blueprint.obsidian_collecting_robot_cost.ore;
-            self.stock.clay -= self.blueprint.obsidian_collecting_robot_cost.clay;
-            println!(
-                "Spend {} ore and {} clay to start building a obsidian-collecting robot.",
-                self.blueprint.obsidian_collecting_robot_cost.ore,
-                self.blueprint.obsidian_collecting_robot_cost.clay
-            );
+        let robot = self.blueprint.find_next_easiest_robot(&self.stock, robots);
+        match robot {
+            Some(Robot::GeodeCracking) if self.blueprint.can_create_geode_robot(&self.stock) => {
+                self.stock -= self.blueprint.geode_cracking_robot_cost;
+                println!(
+                    "Spend {} ore and {} obsidian to start building a geode-cracking robot.",
+                    self.blueprint.geode_cracking_robot_cost.ore,
+                    self.blueprint.geode_cracking_robot_cost.obsidian
+                );
+                Some(Robot::GeodeCracking)
+            }
             Some(Robot::ObsidianCollecting)
-        } else if self.blueprint.can_create_clay_robot(&self.stock, robots) {
-            self.stock.ore -= self.blueprint.clay_collecting_robot_cost.ore;
-            println!(
-                "Spend {} ore to start building a clay-collecting robot.",
-                self.blueprint.clay_collecting_robot_cost.ore
-            );
-            Some(Robot::ClayCollecting)
-        } else if self.blueprint.can_create_ore_robot(&self.stock, robots) {
-            self.stock.ore -= self.blueprint.ore_collecting_robot_cost.ore;
-            println!(
-                "Spend {} ore to start building a ore-collecting robot.",
-                self.blueprint.ore_collecting_robot_cost.ore
-            );
-            Some(Robot::OreCollecting)
-        } else {
-            None
+                if self.blueprint.can_create_obsidian_robot(&self.stock) =>
+            {
+                self.stock.ore -= self.blueprint.obsidian_collecting_robot_cost.ore;
+                self.stock.clay -= self.blueprint.obsidian_collecting_robot_cost.clay;
+                println!(
+                    "Spend {} ore and {} clay to start building a obsidian-collecting robot.",
+                    self.blueprint.obsidian_collecting_robot_cost.ore,
+                    self.blueprint.obsidian_collecting_robot_cost.clay
+                );
+                Some(Robot::ObsidianCollecting)
+            }
+            Some(Robot::ClayCollecting) if self.blueprint.can_create_clay_robot(&self.stock) => {
+                self.stock.ore -= self.blueprint.clay_collecting_robot_cost.ore;
+                println!(
+                    "Spend {} ore to start building a clay-collecting robot.",
+                    self.blueprint.clay_collecting_robot_cost.ore
+                );
+                Some(Robot::ClayCollecting)
+            }
+            Some(Robot::OreCollecting) if self.blueprint.can_create_ore_robot(&self.stock) => {
+                self.stock.ore -= self.blueprint.ore_collecting_robot_cost.ore;
+                println!(
+                    "Spend {} ore to start building a ore-collecting robot.",
+                    self.blueprint.ore_collecting_robot_cost.ore
+                );
+                Some(Robot::OreCollecting)
+            }
+            _ => None,
         }
     }
 }
@@ -148,37 +186,89 @@ struct Blueprint {
     clay_collecting_robot_cost: Stock,
     obsidian_collecting_robot_cost: Stock,
     geode_cracking_robot_cost: Stock,
+    max_required_robots: Stock,
 }
 impl Blueprint {
-    fn max_required_robots(&self) -> Stock {
-        Stock {
-            geode: u32::MAX,
-            obsidian: self.geode_cracking_robot_cost.obsidian,
-            clay: self.obsidian_collecting_robot_cost.clay,
-            ore: self
-                .ore_collecting_robot_cost
-                .ore
-                .max(self.clay_collecting_robot_cost.ore)
-                .max(self.obsidian_collecting_robot_cost.ore)
-                .max(self.geode_cracking_robot_cost.ore),
-        }
+    fn find_next_easiest_robot(&self, stock: &Stock, robots: &Robots) -> Option<Robot> {
+        [
+            (
+                Robot::OreCollecting,
+                (self.max_required_robots.ore > robots.ore_collecting)
+                    .then(|| {
+                        self.ore_collecting_robot_cost
+                            .ore
+                            .checked_sub(stock.ore)
+                            .unwrap_or(0)
+                            .checked_div(robots.ore_collecting)
+                            .and_then(|time| Some(time * 4))
+                    })
+                    .flatten(),
+            ),
+            (
+                Robot::ClayCollecting,
+                (self.max_required_robots.clay > robots.clay_collecting)
+                    .then(|| {
+                        self.clay_collecting_robot_cost
+                            .ore
+                            .checked_sub(stock.ore)
+                            .unwrap_or(0)
+                            .checked_div(robots.ore_collecting)
+                            .and_then(|time| Some(time * 3))
+                    })
+                    .flatten(),
+            ),
+            (
+                Robot::ObsidianCollecting,
+                (self.max_required_robots.obsidian > robots.obsidian_collecting)
+                    .then(|| {
+                        self.obsidian_collecting_robot_cost
+                            .ore
+                            .checked_sub(stock.ore)
+                            .unwrap_or(0)
+                            .checked_div(robots.ore_collecting)
+                            .max(
+                                self.obsidian_collecting_robot_cost
+                                    .clay
+                                    .checked_sub(stock.clay)
+                                    .unwrap_or(0)
+                                    .checked_div(robots.clay_collecting),
+                            )
+                            .and_then(|time| Some(time * 2))
+                    })
+                    .flatten(),
+            ),
+            (
+                Robot::GeodeCracking,
+                self.geode_cracking_robot_cost
+                    .ore
+                    .checked_sub(stock.ore)
+                    .unwrap_or(0)
+                    .checked_div(robots.ore_collecting)
+                    .max(
+                        self.geode_cracking_robot_cost
+                            .obsidian
+                            .checked_sub(stock.obsidian)
+                            .unwrap_or(0)
+                            .checked_div(robots.obsidian_collecting),
+                    ),
+            ),
+        ]
+        .into_iter()
+        .min_by_key(|(_, time)| *time)
+        .map(|(robot, _)| robot)
     }
+
     fn can_create_geode_robot(&self, stock: &Stock) -> bool {
-        stock.ore >= self.geode_cracking_robot_cost.ore
-            && stock.obsidian >= self.geode_cracking_robot_cost.obsidian
+        stock >= &self.geode_cracking_robot_cost
     }
-    fn can_create_obsidian_robot(&self, stock: &Stock, robots: &Robots) -> bool {
-        stock.ore >= self.obsidian_collecting_robot_cost.ore
-            && stock.clay >= self.obsidian_collecting_robot_cost.clay
-            && robots.obsidian_collecting < self.max_required_robots().obsidian
+    fn can_create_obsidian_robot(&self, stock: &Stock) -> bool {
+        stock >= &self.obsidian_collecting_robot_cost
     }
-    fn can_create_clay_robot(&self, stock: &Stock, robots: &Robots) -> bool {
-        stock.ore >= self.clay_collecting_robot_cost.ore
-            && robots.clay_collecting < self.max_required_robots().clay
+    fn can_create_clay_robot(&self, stock: &Stock) -> bool {
+        stock >= &self.clay_collecting_robot_cost
     }
-    fn can_create_ore_robot(&self, stock: &Stock, robots: &Robots) -> bool {
-        stock.ore >= self.ore_collecting_robot_cost.ore
-            && robots.ore_collecting < self.max_required_robots().ore
+    fn can_create_ore_robot(&self, stock: &Stock) -> bool {
+        stock >= &self.ore_collecting_robot_cost
     }
 }
 
@@ -326,6 +416,16 @@ impl<'a> TryFrom<&'a str> for Blueprint {
             clay_collecting_robot_cost,
             obsidian_collecting_robot_cost,
             geode_cracking_robot_cost,
+            max_required_robots: Stock {
+                geode: u32::MAX,
+                obsidian: geode_cracking_robot_cost.obsidian,
+                clay: obsidian_collecting_robot_cost.clay,
+                ore: ore_collecting_robot_cost
+                    .ore
+                    .max(clay_collecting_robot_cost.ore)
+                    .max(obsidian_collecting_robot_cost.ore)
+                    .max(geode_cracking_robot_cost.ore),
+            },
         })
     }
 }
@@ -383,6 +483,12 @@ mod test {
                     obsidian: 7,
                     ..Default::default()
                 },
+                max_required_robots: Stock {
+                    ore: 4,
+                    clay: 20,
+                    obsidian: 7,
+                    geode: u32::MAX
+                }
             })
         );
     }
